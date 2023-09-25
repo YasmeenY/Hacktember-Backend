@@ -5,7 +5,7 @@ from sqlalchemy_serializer import SerializerMixin
 
 class User( db.Model, SerializerMixin ):
     __tablename__ = 'users'
-    serialize_rules = ('-courses.users', '-courses-enrolled.user')
+    serialize_rules = ('-courses_enrolled.user',)
 
     id = db.Column( db.Integer, primary_key=True )
     first_name = db.Column( db.String )
@@ -13,8 +13,7 @@ class User( db.Model, SerializerMixin ):
     email = db.Column( db.String, unique = True )
     password = db.Column( db.Text )
 
-    courses_enrolled = db.relationship( 'CoursesEnrolled', back_populates = 'user', cascade='all, delete-orphan' )
-    courses = association_proxy( 'coursesenrolled', 'course' )
+    courses_enrolled = db.relationship( 'CoursesEnrolled',cascade="all,delete", backref = 'user' )
 
     def authenticate( self, password ):
         return bcrypt.check_password_hash(
@@ -23,15 +22,17 @@ class User( db.Model, SerializerMixin ):
 
 class Course( db.Model , SerializerMixin):
     __tablename__ = 'courses'
-    serialize_rules = ( '-courses-enrolled.users', '-courses-enrolled.user' )
+    serialize_rules = ( '-courses_enrolled.course', )
 
     id = db.Column( db.Integer, primary_key=True )
     name = db.Column( db.String )
     description = db.Column( db.String )
 
+    courses_enrolled = db.relationship( 'CoursesEnrolled', backref = 'course' )
+
 class CoursesEnrolled( db.Model , SerializerMixin):
-    __tablename__ = 'courses-enrolled'
-    serialize_rules = ( '-user.courses-enrolled', '-course.courses-enrolled' )
+    __tablename__ = 'courses_enrolled'
+    serialize_rules = ( '-user.courses_enrolled', '-course.courses-enrolled', )
 
     id = db.Column( db.Integer, primary_key=True )
     created_at = db.Column( db.DateTime, server_default = db.func.now() )

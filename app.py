@@ -7,19 +7,6 @@ from flask_restful import Resource
 def Home():
     return "Home Route"
 
-def user_to_dict( user ):
-    return {
-        "id": user.id,
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "email": user.email,
-    }
-def courses_to_dict( user ):
-    return {
-        "id": user.id,
-        "course_id": user.course_id,
-    }
-
 class ClearSession( Resource ):
     
     def delete( self ):
@@ -36,7 +23,7 @@ class CheckSession(Resource):
         user_id = session.get('user_id')
         if user_id:
             user = User.query.filter(User.id == user_id).first()
-            return user_to_dict( user ), 200
+            return user.to_dict(), 200
         
         return {}, 401
 
@@ -69,7 +56,7 @@ class Signup( Resource ):
 
         session[ 'user_id' ] = new_user.id
         
-        return user_to_dict( new_user ), 201
+        return new_user.to_dict(), 201
 
 class Login( Resource ):
 
@@ -87,7 +74,7 @@ class Login( Resource ):
 
         if user.authenticate( password ):
             session[ 'user_id' ] = user.id
-            return user_to_dict( user ), 200
+            return user.to_dict(), 200
 
         else:
             return { "error": "Members Only Content, Unauthorized Access!"}, 401
@@ -109,9 +96,7 @@ def user( id ):
     user_courses = CoursesEnrolled.query.filter( CoursesEnrolled.user_id == id ).all()
     if user:
         if request.method == "GET":
-            user_dict =  user_to_dict( user)
-            user_dict["courses_enrolled"] = [courses_to_dict(r) for r in user_courses]
-            return make_response( jsonify( user_dict ), 200 )
+            return make_response( user.to_dict(), 200 )
         
         elif request.method == "DELETE":
             CoursesEnrolled.query.filter_by( user_id = id ).delete()
@@ -125,9 +110,7 @@ def user( id ):
                 setattr(user, attr, user_data[attr])
             db.session.add(user)
             db.session.commit()
-            user_dict =  user_to_dict( user)
-            user_dict["courses_enrolled"] = [courses_to_dict(r) for r in user.courses_enrolled]
-            return make_response( jsonify( user_dict ), 200 )
+            return make_response( user.to_dict(), 200 )
     else:
         return make_response( "User not found.", 404 )
 
