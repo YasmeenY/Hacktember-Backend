@@ -93,12 +93,11 @@ api.add_resource( CheckSession, '/check_session', endpoint='check_session' )
 @app.route( '/users/<int:id>', methods=[ "GET", "DELETE", "PATCH" ] )
 def user( id ):
     user = User.query.filter( User.id == id ).first()
-    user_courses = CoursesEnrolled.query.filter( CoursesEnrolled.user_id == id ).all()
     if user:
-        if request.method == "GET":
-            return make_response( user.to_dict(), 200 )
+        # if request.method == "GET":
+        #     return make_response( user.to_dict(), 200 )
         
-        elif request.method == "DELETE":
+        if request.method == "DELETE":
             CoursesEnrolled.query.filter_by( user_id = id ).delete()
             db.session.delete( user )
             db.session.commit()
