@@ -11,6 +11,8 @@ app.config ['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///students'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.json.compact = False
 
+app.secret_key = b'$D|-&?\x9ah\xb6P\x8f\x13\xdbO_\xb9'
+
 metadata = MetaData(naming_convention={
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
 })
