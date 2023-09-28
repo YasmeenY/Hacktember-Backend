@@ -32,6 +32,7 @@ class Course( db.Model , SerializerMixin):
 
 class Video( db.Model , SerializerMixin):
     __tablename__ = 'videos'
+    serialize_rules = ( '-video_favorite.video', )
 
     id = db.Column( db.Integer, primary_key=True )
     title = db.Column( db.String )
@@ -40,6 +41,8 @@ class Video( db.Model , SerializerMixin):
     duration = db.Column( db.String )
     pic = db.Column( db.String )
     course_id = db.Column( db.Integer, db.ForeignKey( 'courses.id' ) )
+
+    video_favorite = db.relationship('VideoFavorite', backref='video')
 
 class VideoFavorite( db.Model , SerializerMixin):
     __tablename__ = 'video_favorite'
