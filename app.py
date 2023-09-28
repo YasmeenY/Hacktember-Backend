@@ -1,5 +1,5 @@
 from config import app, db, api, bcrypt
-from models import db, User, Course, CoursesEnrolled
+from models import db, User, Course, VideoFavorite
 from flask import make_response, jsonify, request, session
 from flask_restful import Resource
 
@@ -32,8 +32,6 @@ class Signup( Resource ):
     def post( self ):
 
         try:
-            first_name = request.get_json()[ 'first_name' ]
-            last_name = request.get_json()[ 'last_name' ]
             email = request.get_json()[ 'email' ]
             password = request.get_json()[ 'password' ]
         except KeyError:
@@ -46,8 +44,6 @@ class Signup( Resource ):
         
         hashed_password = bcrypt.generate_password_hash(password.encode( 'utf-8' ))
         new_user = User(
-            first_name = first_name,
-            last_name = last_name,
             email = email,
             password = hashed_password
         )
@@ -98,7 +94,7 @@ def user( id ):
         #     return make_response( user.to_dict(), 200 )
         
         if request.method == "DELETE":
-            CoursesEnrolled.query.filter_by( user_id = id ).delete()
+            VideoFavorite.query.filter_by( user_id = id ).delete()
             db.session.delete( user )
             db.session.commit()
             return make_response("", 204)
@@ -112,6 +108,14 @@ def user( id ):
             return make_response( user.to_dict(), 200 )
     else:
         return make_response( "User not found.", 404 )
+
+@app.route( '/course/<int:id>', methods=[ "GET" ] )
+def course( id ):
+    course = Course.query.filter( Course.id == id ).first()
+    if request.method == "GET":
+        return make_response( course.to_dict(), 200 )
+    else:
+        return make_response( "Course not found.", 404 )
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)

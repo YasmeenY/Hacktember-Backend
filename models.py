@@ -5,15 +5,13 @@ from sqlalchemy_serializer import SerializerMixin
 
 class User( db.Model, SerializerMixin ):
     __tablename__ = 'users'
-    serialize_rules = ('-courses_enrolled.user',)
+    serialize_rules = ('-video_favorite.user',)
 
     id = db.Column( db.Integer, primary_key=True )
-    first_name = db.Column( db.String )
-    last_name = db.Column( db.String )
     email = db.Column( db.String, unique = True )
     password = db.Column( db.Text )
 
-    courses_enrolled = db.relationship( 'CoursesEnrolled',cascade="all,delete", backref = 'user' )
+    video_favorite = db.relationship( 'VideoFavorite',cascade="all,delete", backref = 'user' )
 
     def authenticate( self, password ):
         return bcrypt.check_password_hash(
@@ -22,20 +20,32 @@ class User( db.Model, SerializerMixin ):
 
 class Course( db.Model , SerializerMixin):
     __tablename__ = 'courses'
-    serialize_rules = ( '-courses_enrolled.course', )
+    serialize_rules = ( '-videos.course', )
 
     id = db.Column( db.Integer, primary_key=True )
-    name = db.Column( db.String )
+    title = db.Column( db.String )
+    creator = db.Column( db.String )
+    course_image = db.Column( db.String )
+    difficulty = db.Column( db.String )
+
+    videos = db.relationship( 'Video',cascade="all,delete", backref = 'course' )
+
+class Video( db.Model , SerializerMixin):
+    __tablename__ = 'videos'
+
+    id = db.Column( db.Integer, primary_key=True )
+    title = db.Column( db.String )
+    url = db.Column( db.String )
     description = db.Column( db.String )
+    duration = db.Column( db.String )
+    pic = db.Column( db.String )
+    course_id = db.Column( db.Integer, db.ForeignKey( 'courses.id' ) )
 
-    courses_enrolled = db.relationship( 'CoursesEnrolled', backref = 'course' )
-
-class CoursesEnrolled( db.Model , SerializerMixin):
-    __tablename__ = 'courses_enrolled'
-    serialize_rules = ( '-user.courses_enrolled', '-course.courses-enrolled', )
+class VideoFavorite( db.Model , SerializerMixin):
+    __tablename__ = 'video_favorite'
+    serialize_rules = ( '-user.video_favorite', '-video.video_favorite', )
 
     id = db.Column( db.Integer, primary_key=True )
-    created_at = db.Column( db.DateTime, server_default = db.func.now() )
-    updated_at = db.Column( db.DateTime, onupdate = db.func.now() )
+    liked_at = db.Column( db.DateTime, server_default = db.func.now() )
     user_id = db.Column( db.Integer, db.ForeignKey( 'users.id' ) )
-    course_id = db.Column( db.Integer, db.ForeignKey( 'courses.id' ) )
+    video_id = db.Column( db.Integer, db.ForeignKey( 'videos.id' ) )

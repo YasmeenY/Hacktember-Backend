@@ -12,6 +12,9 @@ flask-restful = "*"
 flask-cors = "*"
 flask-bcrypt = "*"
 faker = "*"
+openai = "*"
+requests = "*"
+uuid = "*"
 
 [dev-packages]
 
