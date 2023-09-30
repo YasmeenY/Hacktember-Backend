@@ -7,14 +7,12 @@ import os
 import uuid
 import requests
 
-openai.api_key = "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"
+openai.api_key = ""
 
-ELEVENLABS_API_KEY = "4c325eabfefe410e7ee98650ccfddf1e"
-ELEVENLABS_VOICE_STABILITY = 1
-ELEVENLABS_VOICE_SIMILARITY = 1
+ELEVENLABS_API_KEY = ""
 
 # Choose your favorite ElevenLabs voice
-ELEVENLABS_VOICE_NAME = "Brian"
+ELEVENLABS_VOICE_NAME = "Joanne"
 ELEVENLABS_ALL_VOICES = []
 
 def transcribe_audio(filename: str) -> str:
@@ -28,7 +26,7 @@ def generate_reply(conversation: list) -> str:
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a helpful python assistant. You should only respond to python related questions. For any other question you must answer 'I am not suitable for this type of tasks, I can help with anything related to python.'" + conversation},
+            {"role": "system", "content": "You are a helpful python assistant. You should only respond to python related questions. For any other question you must answer 'I\'m not suitable for this type of tasks. I can help with anything related to python.'" + conversation},
         ]
     )
     return response["choices"][0]["message"]["content"]
@@ -46,10 +44,6 @@ def generate_audio(text: str, output_path: str = "") -> str:
     }
     data = {
         "text": text,
-        "voice_settings": {
-            "stability": ELEVENLABS_VOICE_STABILITY,
-            "similarity_boost": ELEVENLABS_VOICE_SIMILARITY,
-        }
     }
     response = requests.post(url, json=data, headers=headers)
     with open(output_path, "wb") as output:
