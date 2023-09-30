@@ -1,33 +1,35 @@
 from config import app, db, api, bcrypt
 from models import db, User, Course, VideoFavorite
-from flask import make_response, jsonify, request, session, send_file, render_template
+from flask import make_response, jsonify, request, session, send_file
 from flask_restful import Resource
 import openai
 import os
-import requests
 import uuid
+import requests
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
 
 openai.api_key = ""
 
+ELEVENLABS_API_KEY = ""
+
+# Choose your favorite ElevenLabs voice
+ELEVENLABS_VOICE_NAME = "Joanne"
+ELEVENLABS_ALL_VOICES = []
+
 def transcribe_audio(filename: str) -> str:
-    """
-        Transcribe audio to text.
-    """
+    # Transcribe audio to text.
     with open(filename, "rb") as audio_file:
         transcript = openai.Audio.transcribe("whisper-1", audio_file)
     return transcript.text
 
 def generate_reply(conversation: list) -> str:
-    """
-        Generate a ChatGPT response.
-    """
+    # Generate a ChatGPT response.
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a helpful python assistant."},
-        ] + conversation
+            {"role": "system", "content": "You are a helpful python assistant. You should only respond to python related questions. For any other question you must answer 'I\'m not suitable for this type of tasks. I can help with anything related to python.'" + conversation},
+        ]
     )
     return response["choices"][0]["message"]["content"]
 
@@ -55,6 +57,40 @@ def generate_audio(text):
         if cancellation_details.error_details:
             print("Error details: {}".format(cancellation_details.error_details))
             print("Did you set the speech resource key and region values?")
+
+def generate_audio(text: str, output_path: str = "") -> str:
+    voices = ELEVENLABS_ALL_VOICES
+    try:
+        voice_id = next(filter(lambda v: v["name"] == ELEVENLABS_VOICE_NAME, voices))["voice_id"]
+    except StopIteration:
+        voice_id = voices[0]["voice_id"]
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY,
+        "content-type": "application/json"
+    }
+    data = {
+        "text": text,
+    }
+    response = requests.post(url, json=data, headers=headers)
+    with open(output_path, "wb") as output:
+        output.write(response.content)
+    return output_path
+
+def get_voices() -> list:
+    # get a list of available ElevenLabs voices.
+    url = "https://api.elevenlabs.io/v1/voices"
+    headers = {
+        "xi-api-key": ELEVENLABS_API_KEY
+    }
+    response = requests.get(url, headers=headers)
+    return response.json()["voices"]
+
+if ELEVENLABS_API_KEY:
+    if not ELEVENLABS_ALL_VOICES:
+        ELEVENLABS_ALL_VOICES = get_voices()
+    if not ELEVENLABS_VOICE_NAME:
+        ELEVENLABS_VOICE_NAME = ELEVENLABS_ALL_VOICES[0]["name"]
 
 @app.route("/")
 def Home():
@@ -139,11 +175,9 @@ api.add_resource( Login, '/login', endpoint='login' )
 api.add_resource( Logout, '/logout', endpoint='logout' )
 api.add_resource( CheckSession, '/check_session', endpoint='check_session' )
 
-@app.route( '/users/<int:id>', methods=[ "GET", "DELETE", "PATCH" ] )
+@app.route( '/users/<int:id>', methods=[ "DELETE", "PATCH" ] )
 def user( id ):
     user = User.query.filter( User.id == id ).first()
-    # if request.method == "GET":
-    #     return make_response( user.to_dict(), 200 )
     if user:
         
         if request.method == "DELETE":
@@ -173,9 +207,7 @@ def course( id ):
 # under here not tested yet
 @app.route('/transcribe', methods=['POST'])
 def transcribe():
-    """
-        turn the given audio to text using Whisper.
-    """
+    # turn the given audio to text using Whisper.
     if 'file' not in request.files:
         return 'No file found', 400
     file = request.files['file']
@@ -188,11 +220,25 @@ def transcribe():
 
 @app.route('/ask', methods=['POST'])
 def ask():
-    """
-        Generate a ChatGPT response from the given conversation
-    """
-    conversation = request.get_json(force=True).get("conversation", "")
+    # Generate a ChatGPT response from the given conversation
+    conversation = request.get_json()['question']
     reply = generate_reply(conversation)
+    reply_file = f"{uuid.uuid4()}.mp3"
+    reply_path = f"outputs/{reply_file}"
+    os.makedirs(os.path.dirname(reply_path), exist_ok=True)
+    generate_audio(reply, output_path=reply_path)
+    return jsonify({'text': reply, 'audio': f"/listen/{reply_file}"})
+
+@app.route('/listen/<filename>')
+def listen(filename):
+    # Return the audio file located at the given filename.
+    return send_file(f"outputs/{filename}", mimetype="audio/mp3", as_attachment=False)
+
+
+@app.route('/listen', methods=['POST'])
+def listen():
+    text = request.get_json()[ 'text' ]
+    audio = generate_audio(text)
     return jsonify({'text': reply})
 
 
