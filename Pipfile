@@ -15,6 +15,7 @@ faker = "*"
 openai = "*"
 requests = "*"
 uuid = "*"
+isodate = "*"
 
 [dev-packages]
 
