@@ -31,6 +31,7 @@ def generate_reply(conversation: list) -> str:
     )
     return response["choices"][0]["message"]["content"]
 
+
 def generate_audio(text: str, output_path: str = "") -> str:
     voices = ELEVENLABS_ALL_VOICES
     try:
@@ -206,6 +207,7 @@ def ask():
 def listen(filename):
     # Return the audio file located at the given filename.
     return send_file(f"outputs/{filename}", mimetype="audio/mp3", as_attachment=False)
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)

@@ -14,6 +14,7 @@ flask-bcrypt = "*"
 faker = "*"
 requests = "*"
 uuid = "*"
+isodate = "*"
 openai = "*"
 
 [dev-packages]
