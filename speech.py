@@ -16,8 +16,6 @@ speech_config.speech_synthesis_voice_name='en-US-JennyNeural'
 speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
 
 # Get text from the console and synthesize to the default speaker.
-print("Enter some text that you want to speak >")
-text = input()
 
 speech_synthesis_result = speech_synthesizer.speak_text_async(text).get()
 
