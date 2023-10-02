@@ -7,9 +7,9 @@ import os
 import uuid
 import requests
 
-openai.api_key = "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"
+openai.api_key = ""
 
-ELEVENLABS_API_KEY = "4c325eabfefe410e7ee98650ccfddf1e"
+ELEVENLABS_API_KEY = ""
 
 # Choose your favorite ElevenLabs voice
 ELEVENLABS_VOICE_NAME = "Joanne"
@@ -146,14 +146,17 @@ class Logout( Resource ):
 
 class Courses(Resource):
     def get(self):
+        #get the data of all available courses
         courses = Course.query.all()
         if request.method == "GET":
             courses_serialized = [course.to_dict() for course in courses]
             return courses_serialized, 200
         else:
             return make_response( "Course not found.", 404 )
+
 class Videos(Resource):
     def get(self):
+        #git all the data of all videos
         videos = Video.query.all()
         if request.method == "GET":
             videos_serialized = [video.to_dict(only=('id', 'title', 'url', 'description', 'duration', 'pic','course_id')) for video in videos]
@@ -163,11 +166,77 @@ class Videos(Resource):
 
 class VideosById(Resource):
     def get(self, id):
+        #get data on videos using video id
         video = Video.query.filter( Video.id == id ).first()
         if request.method == "GET":
             return make_response( video.to_dict(only=('id', 'title', 'url', 'description', 'duration', 'pic','course_id')), 200 )
         else:
             return make_response( "Course not found.", 404 )
+        
+class CourseById(Resource):
+    def get(self, id):
+        #get data about course using course id
+        course = Course.query.filter( Course.id == id ).first()
+        if request.method == "GET":
+            return make_response( course.to_dict(), 200 )
+        else:
+            return make_response( "Course not found.", 404 )
+        
+class userById(Resource):
+    def delete(self, id):
+        if session.get('user_id'):
+            #allows deleting the user and related data
+            user = User.query.filter( User.id == id ).first()
+            VideoFavorite.query.filter_by( user_id = id ).delete()
+            db.session.delete( user )
+            db.session.commit()
+            return make_response("", 204)
+        else:
+            return make_response( "User not found.", 404 )
+
+    def patch(self, id):
+        #only allow changing user email
+        if session.get('user_id'):
+            user = User.query.filter( User.id == id ).first()
+            user_data = request.get_json()
+            for attr in user_data:
+                setattr(user, attr, user_data[attr])
+            db.session.add(user)
+            db.session.commit()
+            return make_response( user.to_dict(), 200 )
+        else:
+            return make_response( "User not found.", 404 )
+class Transcribe(Resource):
+    def post(self):
+        # turn the given audio to text using Whisper.
+        if 'file' not in request.files:
+            return 'No file found', 400
+        file = request.files['file']
+        recording_file = f"{uuid.uuid4()}-mo.wav"
+        recording_path = f"uploads/{recording_file}"
+        os.makedirs(os.path.dirname(recording_path), exist_ok=True)
+        file.save(recording_path)
+        transcription = transcribe_audio(recording_path)
+        return make_response({'text': transcription})
+
+class Ask(Resource):
+    def post(self):
+        # Generate a ChatGPT response from the given conversation
+        conversation = request.get_json()['question']
+        reply = generate_reply(conversation)
+        reply_file = f"{uuid.uuid4()}.mp3"
+        reply_path = f"outputs/{reply_file}"
+        os.makedirs(os.path.dirname(reply_path), exist_ok=True)
+        audio = generate_audio(reply, output_path=reply_path)
+        return jsonify({'text': reply, 'audio': f"/listen/{reply_file}"})
+
+class Listen(Resource):
+    def get(self, filename):
+        # Return the audio file located at the given filename.
+        if not filename:
+            return make_response("No audio found", 404)
+        return send_file(f"outputs/{filename}", mimetype="audio/mp3", as_attachment=False)
+
 
 api.add_resource( Signup, '/signup', endpoint = 'signup' )
 api.add_resource( Login, '/login', endpoint='login' )
@@ -175,69 +244,12 @@ api.add_resource( Logout, '/logout', endpoint='logout' )
 api.add_resource( CheckSession, '/check_session', endpoint='check_session' )
 api.add_resource( Courses, '/courses', endpoint='courses' )
 api.add_resource( Videos, '/videos', endpoint='videos' )
-api.add_resource( VideosById, '/video/<int:id>', endpoint='/video/<int:id>' )
-
-@app.route( '/users/<int:id>', methods=[ "DELETE", "PATCH" ] )
-def user( id ):
-    user = User.query.filter( User.id == id ).first()
-    if user:
-        
-        if request.method == "DELETE":
-            VideoFavorite.query.filter_by( user_id = id ).delete()
-            db.session.delete( user )
-            db.session.commit()
-            return make_response("", 204)
-
-        elif request.method == "PATCH":
-            user_data = request.get_json()
-            for attr in user_data:
-                setattr(user, attr, user_data[attr])
-            db.session.add(user)
-            db.session.commit()
-            return make_response( user.to_dict(), 200 )
-    else:
-        return make_response( "User not found.", 404 )
-
-@app.route( '/course/<int:id>', methods=[ "GET" ] )
-def course_by_id( id ):
-    course = Course.query.filter( Course.id == id ).first()
-    if request.method == "GET":
-        return make_response( course.to_dict(), 200 )
-    else:
-        return make_response( "Course not found.", 404 )
-
-# under here not tested yet
-@app.route('/transcribe', methods=['POST'])
-def transcribe():
-    # turn the given audio to text using Whisper.
-    if 'file' not in request.files:
-        return 'No file found', 400
-    file = request.files['file']
-    recording_file = f"{uuid.uuid4()}-mo.wav"
-    recording_path = f"uploads/{recording_file}"
-    os.makedirs(os.path.dirname(recording_path), exist_ok=True)
-    file.save(recording_path)
-    transcription = transcribe_audio(recording_path)
-    return jsonify({'text': transcription})
-
-@app.route('/ask', methods=['POST'])
-def ask():
-    # Generate a ChatGPT response from the given conversation
-    conversation = request.get_json()['question']
-    reply = generate_reply(conversation)
-    reply_file = f"{uuid.uuid4()}.mp3"
-    reply_path = f"outputs/{reply_file}"
-    os.makedirs(os.path.dirname(reply_path), exist_ok=True)
-    audio = generate_audio(reply, output_path=reply_path)
-    return jsonify({'text': reply, 'audio': f"/listen/{reply_file}"})
-
-@app.route('/listen/<filename>')
-def listen(filename):
-    # Return the audio file located at the given filename.
-    if not filename:
-        return make_response("No audio found", 404)
-    return send_file(f"outputs/{filename}", mimetype="audio/mp3", as_attachment=False)
-
+api.add_resource( VideosById, '/video/<int:id>', endpoint='video/<int:id>' )
+api.add_resource( CourseById, '/course/<int:id>', endpoint='course/<int:id>' )
+api.add_resource( userById, '/users/<int:id>', endpoint='users/<int:id>' )
+api.add_resource( Transcribe, '/transcribe', endpoint='transcribe' )
+api.add_resource( Ask, '/ask', endpoint='/ask' )
+api.add_resource( Listen, '/listen/<filename>', endpoint='listen/<filename>')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
