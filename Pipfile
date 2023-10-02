@@ -16,6 +16,7 @@ requests = "*"
 uuid = "*"
 isodate = "*"
 openai = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
