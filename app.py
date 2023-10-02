@@ -1,5 +1,5 @@
 from config import app, db, api, bcrypt
-from models import db, User, Course, VideoFavorite
+from models import db, User, Course, VideoFavorite, Video
 from flask import make_response, jsonify, request, session, send_file
 from flask_restful import Resource
 import openai
@@ -7,9 +7,9 @@ import os
 import uuid
 import requests
 
-openai.api_key = ""
+openai.api_key = "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"
 
-ELEVENLABS_API_KEY = ""
+ELEVENLABS_API_KEY = "4c325eabfefe410e7ee98650ccfddf1e"
 
 # Choose your favorite ElevenLabs voice
 ELEVENLABS_VOICE_NAME = "Joanne"
@@ -144,10 +144,38 @@ class Logout( Resource ):
         session[ 'user_id' ] = None
         return {}, 204
 
+class Courses(Resource):
+    def get(self):
+        courses = Course.query.all()
+        if request.method == "GET":
+            courses_serialized = [course.to_dict() for course in courses]
+            return courses_serialized, 200
+        else:
+            return make_response( "Course not found.", 404 )
+class Videos(Resource):
+    def get(self):
+        videos = Video.query.all()
+        if request.method == "GET":
+            videos_serialized = [video.to_dict(only=('id', 'title', 'url', 'description', 'duration', 'pic','course_id')) for video in videos]
+            return videos_serialized, 200
+        else:
+            return make_response( "Videos not found.", 404 )
+
+class VideosById(Resource):
+    def get(self, id):
+        video = Video.query.filter( Video.id == id ).first()
+        if request.method == "GET":
+            return make_response( video.to_dict(only=('id', 'title', 'url', 'description', 'duration', 'pic','course_id')), 200 )
+        else:
+            return make_response( "Course not found.", 404 )
+
 api.add_resource( Signup, '/signup', endpoint = 'signup' )
 api.add_resource( Login, '/login', endpoint='login' )
 api.add_resource( Logout, '/logout', endpoint='logout' )
 api.add_resource( CheckSession, '/check_session', endpoint='check_session' )
+api.add_resource( Courses, '/courses', endpoint='courses' )
+api.add_resource( Videos, '/videos', endpoint='videos' )
+api.add_resource( VideosById, '/video/<int:id>', endpoint='/video/<int:id>' )
 
 @app.route( '/users/<int:id>', methods=[ "DELETE", "PATCH" ] )
 def user( id ):
@@ -171,7 +199,7 @@ def user( id ):
         return make_response( "User not found.", 404 )
 
 @app.route( '/course/<int:id>', methods=[ "GET" ] )
-def course( id ):
+def course_by_id( id ):
     course = Course.query.filter( Course.id == id ).first()
     if request.method == "GET":
         return make_response( course.to_dict(), 200 )
@@ -185,7 +213,7 @@ def transcribe():
     if 'file' not in request.files:
         return 'No file found', 400
     file = request.files['file']
-    recording_file = f"{uuid.uuid4()}.wav"
+    recording_file = f"{uuid.uuid4()}-mo.wav"
     recording_path = f"uploads/{recording_file}"
     os.makedirs(os.path.dirname(recording_path), exist_ok=True)
     file.save(recording_path)
@@ -200,12 +228,14 @@ def ask():
     reply_file = f"{uuid.uuid4()}.mp3"
     reply_path = f"outputs/{reply_file}"
     os.makedirs(os.path.dirname(reply_path), exist_ok=True)
-    generate_audio(reply, output_path=reply_path)
+    audio = generate_audio(reply, output_path=reply_path)
     return jsonify({'text': reply, 'audio': f"/listen/{reply_file}"})
 
 @app.route('/listen/<filename>')
 def listen(filename):
     # Return the audio file located at the given filename.
+    if not filename:
+        return make_response("No audio found", 404)
     return send_file(f"outputs/{filename}", mimetype="audio/mp3", as_attachment=False)
 
 
