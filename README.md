@@ -6,7 +6,7 @@ Utilizing a Flask API backend with a React frontend, Learnability Pathway is an 
 
 ## Table Relations
 
-
+![tableRelations](https://github.com/YasmeenY/Hacktember-Backend/assets/90418738/fbe9b8e6-3434-4787-91ef-e03fa34cfcfd)
 
 ## Setup
 
