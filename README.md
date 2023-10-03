@@ -53,3 +53,8 @@ Frontend Team:
 - Ryan Salvato - https://github.com/salvat36
 - JaSON Rete - https://github.com/JSONRete
 - Sheena Sang - https://github.com/sheenasany/
+
+Product Design Team:
+
+- Colin Robison - https://colinrobison.format.com/
+- Helen Phelan-Guillemot - https://helenpgdesign.com/
