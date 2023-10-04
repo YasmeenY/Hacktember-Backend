@@ -8,9 +8,9 @@ import os
 import uuid
 import requests
 
-openai.api_key = "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"
+openai.api_key = ""
 
-ELEVENLABS_API_KEY = "123c61b7883221d3134734a807c0bcff"
+ELEVENLABS_API_KEY = ""
 
 # Choose your favorite ElevenLabs voice
 ELEVENLABS_VOICE_NAME = "Joanne"
