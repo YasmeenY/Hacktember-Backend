@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Utilizing a Flask API backend with a React frontend, Learnability Pathway is an educational platform intended to give users the ability to learn python with free resources obtained from the youtube API. We are utilizing OpenAi API and Elevenlabs API to leverage accessability.
+Visually impaired users, 50 years or older, who are looking to learn Python coding language need a product/platform that is accessible and allows them to easily learn in a way that carefully considers how they receive information. Our goal is to create a product tailored to their needs by using a combination of visual, voice and audio aids along with an artificial intelligence feature to enable them to learn seamlessly and comfortably. Utilizing a Flask API backend with a React frontend, the course data were obtained from the youtube API. OpenAi API and Elevenlabs API are used to leverage accessability.
 
 ## Table Relations
 
@@ -34,7 +34,7 @@ Frontend - https://github.com/JSONRete/Hacktember-Frontend
 ```
 5. Start the backend server
 ```
-    flask run
+    python app.py
 ```
 ## Contributors
 

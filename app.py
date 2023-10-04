@@ -1,15 +1,16 @@
 from config import app, db, api, bcrypt
 from models import db, User, Course, VideoFavorite, Video
 from flask import make_response, jsonify, request, session, send_file
+from sqlalchemy.exc import IntegrityError
 from flask_restful import Resource
 import openai
 import os
 import uuid
 import requests
 
-openai.api_key = ""
+openai.api_key = "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"
 
-ELEVENLABS_API_KEY = ""
+ELEVENLABS_API_KEY = "123c61b7883221d3134734a807c0bcff"
 
 # Choose your favorite ElevenLabs voice
 ELEVENLABS_VOICE_NAME = "Joanne"
@@ -164,6 +165,26 @@ class Videos(Resource):
         else:
             return make_response( "Videos not found.", 404 )
 
+class FavVideos(Resource):
+    def post(self):
+        if session.get('user_id'):
+            video_id = request.get_json()['video_id']
+            user_id = session['user_id']
+            already_faved = VideoFavorite.query.filter_by(video_id=video_id, user_id=user_id).first()
+            if already_faved:
+                return {'error': 'Already a favorite'}, 400
+            try:
+                new_fav = VideoFavorite(
+                    video_id=video_id,
+                    user_id=user_id
+                )
+                db.session.add(new_fav)
+                db.session.commit()
+                return new_fav.to_dict(only=('id', 'user_id','video_id')), 201
+            except IntegrityError:
+                return {'error': 'invalid input'}, 422
+        return {'error': '401 Unauthorized'}, 401
+
 class VideosById(Resource):
     def get(self, id):
         #get data on videos using video id
@@ -172,7 +193,7 @@ class VideosById(Resource):
             return make_response( video.to_dict(only=('id', 'title', 'url', 'description', 'duration', 'pic','course_id')), 200 )
         else:
             return make_response( "Course not found.", 404 )
-        
+
 class CourseById(Resource):
     def get(self, id):
         #get data about course using course id
@@ -250,6 +271,7 @@ api.add_resource( userById, '/users/<int:id>', endpoint='users/<int:id>' )
 api.add_resource( Transcribe, '/transcribe', endpoint='transcribe' )
 api.add_resource( Ask, '/ask', endpoint='/ask' )
 api.add_resource( Listen, '/listen/<filename>', endpoint='listen/<filename>')
+api.add_resource( FavVideos, '/save', endpoint='save')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
